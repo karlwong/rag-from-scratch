@@ -1,236 +1,62 @@
-# Runbook: zero setup to validated result
+# Run from zero to result
 
-## 1. Purpose and scope
+This guide is the **user-facing execution runbook** for the current state of this repository. It covers what you can run today, what each script produces, and where the current repo still depends on external training/inference infrastructure.
 
-This repository is a **benchmark-analysis and packaging workspace** for the Wonderland-style reasoning competition described in `AGENTS.md` and the project docs. The checked-in code does **not** train or serve a final model end to end yet. What it currently does is:
+## 1. What “result” means in this repo
 
-1. inspect and profile the benchmark CSVs,
-2. route prompts into benchmark families,
-3. run honest offline baseline evaluation on `train.csv`,
-4. generate approved synthetic data for the safest families,
-5. convert real and synthetic rows into chat-style SFT JSONL files, and
-6. validate/package a **Nemotron-3-Nano-30B-compatible LoRA adapter directory** for submission.
+This repository currently supports a **benchmark-analysis to submission-packaging workflow**, not a full train-and-serve stack.
 
-In this repo, a **"result"** can mean two different things depending on stage:
+### Implemented results you can produce now
+- dataset profiling summaries from `scripts/profile_dataset.py`
+- router validation reports from `scripts/build_router.py`
+- offline baseline metrics from `scripts/eval_baselines.py`
+- approved synthetic training rows from `scripts/generate_synthetic.py`
+- chat-style SFT datasets from `scripts/prepare_sft_data.py`
+- a validated submission bundle from `scripts/package_lora_submission.py`, **if you already have a Nemotron-compatible LoRA adapter directory**
 
-- **Current implemented result:** a reproducible offline evaluation summary plus optional synthetic/SFT/packaging artifacts.
-- **Final competition result:** a packaged LoRA adapter bundle containing at minimum `adapter_config.json` and, in a real submission, adapter weights compatible with NVIDIA Nemotron-3-Nano-30B and vLLM.
+### Not implemented in the checked-in repo
+- LoRA training script
+- vLLM inference launcher
+- end-to-end hidden-test prediction runner
+- solver modules under `src/` (the repo docs discuss them, but the current implementation keeps logic in `scripts/`)
 
-### Expected outputs
-
-Depending on which stage you run, expect these outputs:
-
-- Console reports from:
-  - `scripts/profile_dataset.py`
-  - `scripts/build_router.py`
-  - `scripts/eval_baselines.py`
-- Synthetic CSV files under `artifacts/synthetic/`
-- SFT JSONL datasets plus a summary JSON under `artifacts/sft/`
-- Submission bundles under `artifacts/submission/`
-- No training checkpoints, no inference server outputs, and no final leaderboard predictions are produced by the current checked-in code.
+### Key assumption
+The project docs and `AGENTS.md` assume the eventual submission target is a **NVIDIA Nemotron-3-Nano-30B compatible LoRA adapter** loaded with **vLLM**. This runbook only documents the pieces that actually exist in the repository today.
 
 ---
 
-## 2. Repository overview
+## 2. Repo-specific prerequisites
 
-## Top-level files
-
-- `train.csv`: the real labeled development dataset used for profiling, offline evaluation, and SFT-data preparation.
-- `test.csv`: a tiny visible smoke-test file. Existing docs and profiler output show it is fully overlapped with train and **must not** be treated as a real validation set.
-- `AGENTS.md`: project-level instructions and benchmark assumptions.
-
-## `docs/`
-
-These documents explain the intended strategy and should be read before changing the workflow:
-
-- `docs/dataset_forensics.md`: benchmark-specific findings from direct CSV inspection.
-- `docs/task_taxonomy.md`: top-level task families and suspected subfamilies.
-- `docs/system_architecture.md`: intended router-first / solver-first architecture.
-- `docs/synthetic_data_plan.md`: which families are safe vs unsafe for synthetic generation.
-- `docs/eval_plan.md`: honest offline evaluation design and cautions.
-- `docs/lora_plan.md`: when LoRA is justified and how minimal it should be.
-- `docs/submission_checklist.md`: packaging and final-deliverable checks.
-- `docs/experiment_backlog.md`: prioritized next experiments.
-- `docs/work_plan.md`: implementation work plan for the current repo stage.
-- `docs/run_from_zero_to_result.md`: this runbook.
-
-## `scripts/`
-
-These are the executable workflow components currently implemented:
-
-- `scripts/profile_dataset.py`: profiles `train.csv` and `test.csv`; reports family counts, answer schemas, and specialized statistics.
-- `scripts/build_router.py`: evaluates a hand-built prompt router and prints normalization rules for final answers.
-- `scripts/eval_baselines.py`: evaluates simple baseline predictors across random and structure-aware folds.
-- `scripts/generate_synthetic.py`: generates approved synthetic rows for `roman_numeral`, `unit_conversion`, and `gravity` only.
-- `scripts/prepare_sft_data.py`: converts real and optional synthetic rows into chat-style JSONL SFT datasets.
-- `scripts/package_lora_submission.py`: validates an adapter directory and packages it as a submission bundle.
-
-## `src/`
-
-- **Current status:** this directory does **not exist** in the checked-in repo.
-- The docs reference possible future modules such as `src/router.py` and `src/solvers.py`, but the current implementation keeps logic inside `scripts/`.
-
-## `configs/`
-
-- **Current status:** this directory does **not exist**.
-- No training config files, YAML experiment configs, or inference configs are checked in yet.
-
-## `outputs/`
-
-- **Current status:** this directory does **not exist**.
-- The actual scripts write to `artifacts/`, not `outputs/`.
-
-## `experiments/`
-
-- **Current status:** this directory does **not exist**.
-- Experiment tracking is currently documented in markdown rather than stored as structured experiment manifests.
-
-## `artifacts/`
-
-- **Current status:** created on demand by the scripts.
-- This is the practical output root used by the implemented workflow.
-- Expected subdirectories:
-  - `artifacts/synthetic/`
-  - `artifacts/sft/`
-  - `artifacts/submission/`
-
----
-
-## 3. Prerequisites
-
-## Python version
-
-Assumption from the local environment and script style:
-
-- **Python 3.10+ recommended**.
-- The repo was exercised successfully here with Python 3.10.
-
-The scripts use only the Python standard library, so there is currently no checked-in `requirements.txt`, `pyproject.toml`, or Conda environment file.
-
-## Package / dependency assumptions
-
-Current scripts rely only on standard-library modules such as:
-
-- `argparse`
-- `csv`
-- `json`
-- `hashlib`
-- `statistics`
-- `decimal`
-- `pathlib`
-- `tarfile`
-- `shutil`
-
-That means the **current implemented workflow has no mandatory external Python dependencies**.
-
-## GPU / CUDA assumptions
-
-- **Not required** for the currently implemented scripts.
-- A GPU will become relevant only when you actually train or run a Nemotron LoRA outside the current checked-in workflow.
-- Repo docs assume the final submission target is **NVIDIA Nemotron-3-Nano-30B** with **vLLM** inference compatibility, but there is no training or vLLM launch script in this repo yet.
-
-## Environment variables
-
-- No environment variables are required by the current scripts.
-- If you build your own training or inference stack later, you will likely need your own CUDA / HF / experiment-tracking environment variables, but those are not defined by the current codebase.
-
-## Required files before running
-
-Minimum files that must exist:
-
+## Required files already in the repo
 - `train.csv`
 - `test.csv`
-- the `scripts/` directory
+- `scripts/profile_dataset.py`
+- `scripts/build_router.py`
+- `scripts/eval_baselines.py`
+- `scripts/generate_synthetic.py`
+- `scripts/prepare_sft_data.py`
+- `scripts/package_lora_submission.py`
 
-Additional files needed for specific stages:
+## Python
+- Recommended: **Python 3.10+**
+- Current scripts use only the **Python standard library**.
+- There is **no** checked-in `requirements.txt`, `pyproject.toml`, or Conda environment file.
 
-- For SFT data prep with synthetic augmentation: a synthetic CSV produced by `scripts/generate_synthetic.py` or an equivalent CSV with `prompt` and `answer` columns.
-- For submission packaging: an adapter directory containing at least:
-  - `adapter_config.json`
-  - plus normally either `adapter_model.safetensors` or `adapter_model.bin`
+## System dependencies
+- No GPU is needed for the implemented scripts.
+- No CUDA, PyTorch, PEFT, or vLLM installation is needed for profiling, routing, evaluation, synthetic generation, SFT-data preparation, or packaging validation.
+- A GPU stack becomes your responsibility only when you train or run a real Nemotron LoRA outside this repo's current checked-in workflow.
 
----
-
-## 4. Quick start
-
-If you want the **shortest path from zero setup to a first working result**, do this:
-
-### Step 1: verify Python
-
-```bash
-python --version
-```
-
-### Step 2: inspect the dataset profile
-
-```bash
-python scripts/profile_dataset.py
-```
-
-What you get:
-
-- a benchmark summary printed to stdout,
-- family counts,
-- answer schema counts,
-- confirmation that visible `test.csv` is not a real evaluation target.
-
-### Step 3: verify the router
-
-```bash
-python scripts/build_router.py --skip-demo
-```
-
-What you get:
-
-- top-level router accuracy on the checked-in dataset,
-- equation subfamily routing accuracy,
-- normalization rules for final answer formatting.
-
-### Step 4: run the baseline evaluation
-
-```bash
-python scripts/eval_baselines.py --baseline solver_lite
-```
-
-What you get:
-
-- overall exact-match accuracy,
-- per-family exact-match accuracy,
-- answer-format accuracy,
-- random-vs-structure-aware split comparison.
-
-### Where outputs appear
-
-- For quick start, outputs are printed to the terminal only.
-- No files are created unless you run synthetic generation, SFT prep, or packaging.
-
-### What counts as the first working result
-
-For the current repo state, the first useful result is the offline baseline report from `scripts/eval_baselines.py`. In the checked-in implementation, that shows:
-
-- perfect format accuracy,
-- perfect Roman-numeral accuracy,
-- strong but incomplete unit/gravity accuracy,
-- near-zero performance on text, bit, and equation families.
-
-That establishes the current baseline honestly before you add solver or LoRA work.
+## Assumptions to keep in mind
+- The visible `test.csv` is **not** a realistic validation set. Existing forensics show it overlaps fully with `train.csv`.
+- The repo is optimized for **benchmark-specific reverse engineering and reproducible artifact preparation**, not generic LLM fine-tuning.
+- Packaging assumes you already have an adapter directory containing at minimum `adapter_config.json`, and usually a weight file such as `adapter_model.safetensors` or `adapter_model.bin`.
 
 ---
 
-## 5. Full end-to-end workflow
+## 3. Environment setup
 
-This section walks through the **actual implemented project workflow**, from empty environment to packaged artifact.
-
-## Stage 0: clone repo and enter it
-
-```bash
-git clone <repo-url>
-cd rag-from-scratch
-```
-
-## Stage 1: setup environment
-
-Because there is no dependency file yet, the practical setup is minimal:
+Create and activate a local virtual environment:
 
 ```bash
 python -m venv .venv
@@ -238,833 +64,564 @@ source .venv/bin/activate
 python --version
 ```
 
-If you prefer not to use a venv, the scripts still run as long as a compatible Python is available.
+Because the repo has no external Python dependencies today, that is usually enough.
 
-## Stage 2: inspect data directly
+Optional sanity check:
 
-You should inspect the raw CSVs before trusting the docs.
+```bash
+python scripts/profile_dataset.py --help
+python scripts/build_router.py --help
+python scripts/eval_baselines.py --help
+python scripts/generate_synthetic.py --help
+python scripts/prepare_sft_data.py --help
+python scripts/package_lora_submission.py --help
+```
+
+If those help commands run, the local CLI workflow is ready.
+
+---
+
+## 4. Inspect the dataset before doing anything major
+
+The project instructions explicitly require direct dataset inspection before major recommendations or implementation work.
+
+### Quick raw inspection
 
 ```bash
 python - <<'PY'
 import csv
 from itertools import islice
-for name in ['train.csv', 'test.csv']:
-    print(f'\n{name}')
-    with open(name, newline='', encoding='utf-8') as f:
-        for row in islice(csv.reader(f), 5):
+for path in ["train.csv", "test.csv"]:
+    print(f"\n== {path} ==")
+    with open(path, newline="", encoding="utf-8") as handle:
+        for row in islice(csv.reader(handle), 5):
             print(row)
 PY
 ```
 
-Reads from:
-
-- `train.csv`
-- `test.csv`
-
-Writes to:
-
-- stdout only
-
-## Stage 3: profile the dataset
+### Structured profiling
 
 ```bash
 python scripts/profile_dataset.py
 ```
 
-Optional JSON output:
+### Optional machine-readable profile
 
 ```bash
-python scripts/profile_dataset.py --json > artifacts/profile.json
+python scripts/profile_dataset.py --json > artifacts_profile.json
 ```
 
-Reads from:
+### What the current repo profile shows
+At the time this guide was verified locally:
+- `train.csv` had **9,500** rows.
+- `test.csv` had **3** rows.
+- All **3** visible test rows overlapped with train, so `test.csv` should be treated as a smoke-test sample, not a model-selection target.
+- The training set split almost evenly across six families: `bit_transform`, `text_cipher`, `roman_numeral`, `unit_conversion`, `gravity`, and `equation_transform`.
 
-- `train.csv`
-- `test.csv`
+### Why this step matters
+The rest of the workflow assumes a six-family synthetic puzzle benchmark with short exact-match answers. That assumption is grounded in the data and the profiler, not just in narrative docs.
 
-Writes to:
+---
 
-- stdout only by default
-- user-chosen file if you redirect output
+## 5. Understand the repo structure
 
-Purpose:
+### Top-level data
+- `train.csv`: real labeled development data used for profiling, evaluation, and SFT-data creation.
+- `test.csv`: tiny visible smoke-test file; do not use it for serious validation.
 
-- establish family counts,
-- validate benchmark assumptions,
-- confirm visible-test leakage,
-- understand answer-format requirements.
+### `scripts/`
+- `profile_dataset.py`: benchmark forensics and family statistics.
+- `build_router.py`: rule-based family router evaluation and answer-normalization policy summary.
+- `eval_baselines.py`: offline exact-match baselines on `train.csv` with random and structure-aware folds.
+- `generate_synthetic.py`: approved synthetic generation for `roman_numeral`, `unit_conversion`, and `gravity` only.
+- `prepare_sft_data.py`: converts real and optional synthetic rows to chat-style JSONL.
+- `package_lora_submission.py`: validates and packages an adapter directory.
 
-## Stage 4: build / run router components
+### `docs/`
+The docs are part of the workflow, not just commentary:
+- `docs/dataset_forensics.md`
+- `docs/task_taxonomy.md`
+- `docs/system_architecture.md`
+- `docs/synthetic_data_plan.md`
+- `docs/eval_plan.md`
+- `docs/lora_plan.md`
+- `docs/submission_checklist.md`
+- `docs/experiment_backlog.md`
+- `docs/work_plan.md`
 
-There is no persisted router artifact yet; `scripts/build_router.py` evaluates the hand-built routing logic directly.
+### Output directories
+The scripts write artifacts only when asked to do so. Typical output roots are:
+- `artifacts/synthetic/`
+- `artifacts/sft/`
+- `artifacts/submission/`
+
+If those directories do not exist yet, that is normal.
+
+---
+
+## 6. Baseline execution path: zero to first useful result
+
+If you want the shortest honest workflow, run these three commands first.
+
+### Step 1: profile the dataset
 
 ```bash
-python scripts/build_router.py
+python scripts/profile_dataset.py
 ```
 
-For a concise report:
+You should get a benchmark summary including family counts and answer schema counts.
+
+### Step 2: validate the router
 
 ```bash
 python scripts/build_router.py --skip-demo
 ```
 
-Reads from:
+What this does:
+- evaluates the current hand-built router on a CSV, defaulting to `train.csv`
+- reports top-level family accuracy
+- reports equation subfamily routing accuracy
+- prints the current final-answer normalization policy
 
-- `train.csv` by default
-- another CSV if you pass `--csv <path>`
+What was observed during local verification:
+- top-level routing accuracy: **1.0000**
+- ambiguity-flag share: **0.0000**
+- equation subfamily accuracy: **1.0000**
 
-Writes to:
+Interpretation:
+- the checked-in router is a reliable dispatcher for the visible six-family benchmark structure
+- this does **not** mean the benchmark is solved; it only means the task-family identification is easy on visible data
 
-- stdout only
+### Step 3: run the offline baseline
 
-Purpose:
+```bash
+python scripts/eval_baselines.py --baseline solver_lite
+```
 
-- verify the prompt-family router,
-- inspect route confidence and ambiguity behavior,
-- print the expected answer normalization rules.
+What this does:
+- scores a lightweight baseline on all `train.csv` rows
+- reports both `stratified_random_hash` and `structure_aware_hash` metrics
+- shows exact-match accuracy, answer-format accuracy, and per-family accuracy
 
-## Stage 5: generate synthetic data if applicable
+What was observed during local verification:
+- overall accuracy: **0.4336**
+- answer-format accuracy: **1.0000**
+- per-family accuracy:
+  - `roman_numeral`: **1.0000**
+  - `unit_conversion`: **0.8350**
+  - `gravity`: **0.7502**
+  - `bit_transform`: **0.0056**
+  - `text_cipher`: **0.0000**
+  - `equation_transform`: **0.0032**
 
-Current implementation supports **only these approved families**:
+Interpretation:
+- the current baseline already solves the obvious deterministic family (`roman_numeral`) and partially solves `unit_conversion` and `gravity`
+- the hard unsolved families remain `bit_transform`, `text_cipher`, and `equation_transform`
+- perfect format accuracy means exact-match losses are coming from reasoning, not formatting, in this specific offline heuristic baseline
 
+That baseline report is the repo's current “first useful result.”
+
+---
+
+## 7. Router and solver execution
+
+This repo does **not** yet contain standalone solver modules under `src/`. The runnable family logic lives inside the evaluation and routing scripts.
+
+### Current router execution
+
+```bash
+python scripts/build_router.py --skip-demo
+```
+
+### Optional router demo mode
+
+```bash
+python scripts/build_router.py --demo-limit 5
+```
+
+Use demo mode if you want example routes and confidence annotations printed to the terminal.
+
+### Important limitation
+There is **no** checked-in script that takes `test.csv`, runs a full family-specific solver stack, and emits final predictions for submission. The current repo supports:
+- routing analysis
+- baseline evaluation
+- data preparation
+- submission packaging
+
+If you need a true prompt-to-prediction runner, that is future work implied by the architecture docs, not current functionality.
+
+---
+
+## 8. Synthetic data generation, when applicable
+
+Synthetic generation is intentionally restricted.
+
+### What is implemented
+`scripts/generate_synthetic.py` only supports these approved families:
 - `roman_numeral`
 - `unit_conversion`
 - `gravity`
 
-Generate the MVP synthetic set:
+### What is intentionally not implemented
+No synthetic generator is currently exposed for:
+- `bit_transform`
+- `text_cipher`
+- `equation_transform`
+
+That restriction is deliberate and benchmark-specific; the docs treat those families as too risky to synthesize casually.
+
+### Generate the MVP synthetic set
 
 ```bash
-python scripts/generate_synthetic.py \
-  --preset mvp \
-  --output artifacts/synthetic/mvp_synthetic_train.csv
+python scripts/generate_synthetic.py --preset mvp --output artifacts/synthetic/synthetic_train.csv
 ```
 
-Generate only selected families:
+### Optional controls
+- generate only selected families:
 
 ```bash
 python scripts/generate_synthetic.py \
   --preset mvp \
   --families roman_numeral unit_conversion \
-  --output artifacts/synthetic/mvp_numeric_only.csv
+  --output artifacts/synthetic/synthetic_subset.csv
 ```
 
-Reads from:
-
-- `train.csv` only for prompt deduplication against existing prompts
-
-Writes to:
-
-- `artifacts/synthetic/*.csv`
-
-Notes:
-
-- `mvp` preset targets 3,000 rows total.
-- `full` preset targets 10,000 rows total.
-- The script does **not** generate text, bit, or equation synthetic data.
-
-## Stage 6: prepare SFT data if applicable
-
-The repo does not train a model yet, but it **does** build SFT-ready JSONL datasets.
-
-### Real-only SFT set
+- change seed or stress fraction:
 
 ```bash
-python scripts/prepare_sft_data.py \
-  --recipe original_sft \
-  --output-dir artifacts/sft
+python scripts/generate_synthetic.py \
+  --preset full \
+  --seed 17 \
+  --stress-fraction 0.20 \
+  --output artifacts/synthetic/synthetic_full.csv
 ```
 
-### Mixed real + synthetic SFT set
+### What was observed during local verification
+The `mvp` preset produced:
+- **3,000** synthetic rows total
+- `roman_numeral`: **600**
+- `unit_conversion`: **1,200**
+- `gravity`: **1,200**
 
-```bash
-python scripts/prepare_sft_data.py \
-  --recipe mixed_sft \
-  --synthetic-path artifacts/synthetic/mvp_synthetic_train.csv \
-  --output-dir artifacts/sft
-```
+### Output schema
+The generated CSV contains:
+- `id`
+- `family`
+- `synthetic_tier`
+- `prompt`
+- `answer`
 
-### Format-stabilization variant
+### When to use this step
+Use synthetic generation only if you plan to:
+- prepare mixed SFT data, or
+- inspect benchmark-faithful extra coverage for the approved families
 
-```bash
-python scripts/prepare_sft_data.py \
-  --recipe format_stabilization \
-  --synthetic-path artifacts/synthetic/mvp_synthetic_train.csv \
-  --output-dir artifacts/sft
-```
-
-Reads from:
-
-- `train.csv`
-- optional synthetic CSV(s)
-
-Writes to:
-
-- `artifacts/sft/<dataset>.train.jsonl`
-- `artifacts/sft/<dataset>.dev.jsonl`
-- `artifacts/sft/<dataset>.summary.json`
-
-Important split behavior:
-
-- real rows are split into train/dev by stable hash using `--dev-fraction`,
-- synthetic rows are always assigned to train.
-
-## Stage 7: run evaluation
-
-The current offline evaluation script is baseline-oriented.
-
-```bash
-python scripts/eval_baselines.py --baseline solver_lite
-```
-
-Alternative weaker reference:
-
-```bash
-python scripts/eval_baselines.py --baseline last_demo
-```
-
-Reads from:
-
-- `train.csv`
-
-Writes to:
-
-- stdout only
-
-Purpose:
-
-- establish reproducible baselines,
-- compare random vs structure-aware splits,
-- inspect family-specific performance before adding more complexity.
-
-## Stage 8: run inference if applicable
-
-### Current status
-
-This repo **does not provide a final inference runner** for:
-
-- loading a trained Nemotron LoRA,
-- executing vLLM generation,
-- routing between symbolic solvers and model generation,
-- producing final test predictions.
-
-Most likely intended future workflow, based on the docs:
-
-1. use router / solver logic for families that can be solved deterministically,
-2. use a minimal LoRA or fallback LM on unsolved families,
-3. normalize and emit a single boxed final answer.
-
-Treat any full inference command beyond packaging as an **assumption / not-yet-implemented step**.
-
-## Stage 9: package submission artifact if applicable
-
-Once you have a real adapter directory, package it like this:
-
-```bash
-python scripts/package_lora_submission.py \
-  --adapter-dir path/to/adapter_dir \
-  --output-dir artifacts/submission \
-  --submission-name wonderland_nemotron_lora
-```
-
-Dry-run packaging, if you only want to validate config structure before weights exist:
-
-```bash
-python scripts/package_lora_submission.py \
-  --adapter-dir path/to/adapter_dir \
-  --output-dir artifacts/submission \
-  --submission-name wonderland_nemotron_lora \
-  --allow-missing-weight-file
-```
-
-Reads from:
-
-- adapter directory contents
-
-Writes to:
-
-- `artifacts/submission/<submission-name>/`
-- `artifacts/submission/<submission-name>.tar.gz`
-
-Generated support files include:
-
-- `README_submission.md`
-- `manifest.json`
+If you only want profiling and baseline metrics, you can skip this stage.
 
 ---
 
-## 6. Exact command examples
+## 9. SFT data preparation, when applicable
 
-This section lists concrete repo-aligned commands in the most practical order.
+Use `scripts/prepare_sft_data.py` when you want training-ready JSONL from real data, or from real plus approved synthetic data.
 
-## A. Inspect the benchmark
+### Supported recipes
+- `original_sft`
+- `mixed_sft`
+- `family_conditioned`
+- `format_stabilization`
 
-```bash
-python scripts/profile_dataset.py
-```
+### Common use cases
 
-```bash
-python scripts/profile_dataset.py --json > artifacts/profile.json
-```
-
-## B. Inspect router behavior
+#### A. Real-only SFT data
 
 ```bash
-python scripts/build_router.py --skip-demo
+python scripts/prepare_sft_data.py \
+  --output-dir artifacts/sft \
+  --recipe original_sft \
+  --box-style boxed
 ```
+
+#### B. Mixed real + synthetic SFT data
 
 ```bash
-python scripts/build_router.py --csv train.csv --demo-limit 3
+python scripts/prepare_sft_data.py \
+  --synthetic-path artifacts/synthetic/synthetic_train.csv \
+  --output-dir artifacts/sft \
+  --recipe mixed_sft \
+  --box-style boxed
 ```
 
-## C. Run baseline evaluation
+#### C. Family-conditioned data
+
+```bash
+python scripts/prepare_sft_data.py \
+  --synthetic-path artifacts/synthetic/synthetic_train.csv \
+  --output-dir artifacts/sft \
+  --recipe family_conditioned \
+  --box-style boxed
+```
+
+### Useful guardrail options
+- keep only certain families:
+
+```bash
+python scripts/prepare_sft_data.py \
+  --output-dir artifacts/sft \
+  --recipe original_sft \
+  --family-filter roman_numeral unit_conversion gravity
+```
+
+- cap synthetic volume per family:
+
+```bash
+python scripts/prepare_sft_data.py \
+  --synthetic-path artifacts/synthetic/synthetic_train.csv \
+  --output-dir artifacts/sft \
+  --recipe mixed_sft \
+  --max-synthetic-per-family 200
+```
+
+### What the script writes
+For a dataset name like `mixed_sft_boxed`, the output files are:
+- `artifacts/sft/mixed_sft_boxed.train.jsonl`
+- `artifacts/sft/mixed_sft_boxed.dev.jsonl`
+- `artifacts/sft/mixed_sft_boxed.summary.json`
+
+### What was observed during local verification
+Using a synthetic input plus `--max-synthetic-per-family 5` produced a summary with:
+- `train_rows`: **8573**
+- `dev_rows`: **942**
+- `sources.real`: **9500**
+- `sources.synthetic`: **15**
+
+### Important assumption
+This script prepares **training data only**. It does **not** train an adapter. You must use your own training stack outside this repo to consume the JSONL.
+
+---
+
+## 10. Evaluation workflow
+
+The checked-in repo's main evaluation script is `scripts/eval_baselines.py`.
+
+### Baseline options
+- `last_demo`
+- `solver_lite`
+
+### Run both baselines if you want a comparison
+
+```bash
+python scripts/eval_baselines.py --baseline last_demo
+python scripts/eval_baselines.py --baseline solver_lite
+```
+
+### Control the number of folds
 
 ```bash
 python scripts/eval_baselines.py --baseline solver_lite --num-folds 5
 ```
 
-```bash
-python scripts/eval_baselines.py --baseline last_demo --num-folds 5
-```
+### How to read the outputs
+Each run reports:
+- overall accuracy
+- answer-format accuracy
+- per-family accuracy
+- metrics for both split strategies:
+  - `stratified_random_hash`
+  - `structure_aware_hash`
+- the random-vs-structure gap
 
-## D. Generate synthetic data
+### Recommended workflow for experiments
+1. Keep `solver_lite` as the reference baseline.
+2. If you change prompts, synthetic-data selection, or later add your own trainer, compare against this baseline on **real held-out rows**, not `test.csv`.
+3. Watch the structure-aware split especially closely; the docs treat it as a better hidden-test proxy than naive random splitting.
 
-```bash
-python scripts/generate_synthetic.py \
-  --preset mvp \
-  --output artifacts/synthetic/mvp_synthetic_train.csv
-```
+### Important limitation
+The repo does **not** include an evaluator for a trained adapter checkpoint. If you train outside the repo, you will need to write or add your own prediction-and-scoring loop.
 
-```bash
-python scripts/generate_synthetic.py \
-  --preset full \
-  --families roman_numeral gravity \
-  --stress-fraction 0.20 \
-  --output artifacts/synthetic/full_roman_gravity.csv
-```
+---
 
-## E. Build SFT JSONL datasets
+## 11. Result interpretation
 
-Real only:
+Use the outputs conservatively.
 
-```bash
-python scripts/prepare_sft_data.py \
-  --recipe original_sft \
-  --box-style boxed \
-  --output-dir artifacts/sft
-```
+### Profiling results
+These tell you:
+- whether the benchmark still looks like the six known families
+- whether answer schemas are stable
+- whether visible data still supports the reverse-engineering assumptions in the docs
 
-Mixed training with synthetic augmentation:
+### Router results
+A perfect router score means:
+- the family labels are easy to recover from prompt structure
+- routing is a viable design choice
 
-```bash
-python scripts/prepare_sft_data.py \
-  --recipe mixed_sft \
-  --synthetic-path artifacts/synthetic/mvp_synthetic_train.csv \
-  --box-style boxed \
-  --output-dir artifacts/sft
-```
+It does **not** mean:
+- the downstream solvers are good
+- the hidden benchmark has no drift
 
-Family-conditioned variant:
+### Baseline metrics
+Interpret family accuracy directly:
+- high `roman_numeral` confirms deterministic conversion is easy
+- middling `unit_conversion` and `gravity` show numeric heuristics are partly right but not yet robust enough
+- near-zero `bit_transform`, `text_cipher`, and `equation_transform` confirm the hardest work is still ahead
 
-```bash
-python scripts/prepare_sft_data.py \
-  --recipe family_conditioned \
-  --synthetic-path artifacts/synthetic/mvp_synthetic_train.csv \
-  --box-style boxed \
-  --output-dir artifacts/sft
-```
+### Synthetic-data outputs
+Synthetic rows are useful only if they stay benchmark-faithful. The current repo approves only the safest families; do not treat synthetic volume as progress by itself.
 
-Limit synthetic rows per family:
+### SFT prep outputs
+A generated JSONL file is **not** evidence that LoRA will help. It only means the repo has prepared benchmark-shaped training records for an external trainer.
 
-```bash
-python scripts/prepare_sft_data.py \
-  --recipe mixed_sft \
-  --synthetic-path artifacts/synthetic/mvp_synthetic_train.csv \
-  --max-synthetic-per-family 500 \
-  --output-dir artifacts/sft
-```
+### Submission packaging outputs
+A successful package run means:
+- directory structure and metadata passed local checks
+- the bundle is ready for handoff
 
-## F. Package the final adapter
+It does **not** prove:
+- the adapter is good
+- the adapter loads under your exact vLLM environment
+- the adapter improves accuracy
+
+---
+
+## 12. Submission packaging
+
+Use this step only when you already have an adapter directory.
+
+### Minimum expected adapter contents
+Required:
+- `adapter_config.json`
+
+Usually required in a real submission:
+- `adapter_model.safetensors` or `adapter_model.bin`
+
+### Package a real adapter
 
 ```bash
 python scripts/package_lora_submission.py \
-  --adapter-dir path/to/final_adapter \
+  --adapter-dir /path/to/adapter_dir \
   --output-dir artifacts/submission \
-  --submission-name final_nemotron_adapter
+  --submission-name wonderland_nemotron_lora
 ```
 
-Dry-run validation without weights:
+### Dry-run validation for config-only inspection
+If you only want to validate packaging structure before weights exist:
 
 ```bash
 python scripts/package_lora_submission.py \
-  --adapter-dir path/to/final_adapter \
+  --adapter-dir /path/to/adapter_dir \
   --output-dir artifacts/submission \
-  --submission-name config_only_check \
+  --submission-name wonderland_nemotron_lora \
   --allow-missing-weight-file
 ```
 
-## Not implemented yet, but likely intended usage
+### What the script validates
+- `adapter_config.json` exists
+- `base_model_name_or_path` contains the expected Nemotron identifier
+- `peft_type` is `LORA`
+- `target_modules` exists
+- a weight file exists, unless `--allow-missing-weight-file` is used
 
-The docs strongly imply future commands for:
+### What the script writes
+Under `artifacts/submission/<submission-name>/`:
+- copied adapter files
+- `README_submission.md`
+- `manifest.json`
 
-- actual LoRA training,
-- actual vLLM inference on held-out prompts,
-- solver-backed final prediction generation.
+It also creates:
+- `artifacts/submission/<submission-name>.tar.gz`
 
-Those commands are **not implemented** in the current repo, so do not assume a missing `train.py`, `infer.py`, or `serve.py` exists.
-
----
-
-## 7. Evaluation guide
-
-## How to run evaluation
-
-The current evaluation entry point is:
-
-```bash
-python scripts/eval_baselines.py --baseline solver_lite
-```
-
-This script evaluates rows from `train.csv` using two split strategies:
-
-1. **stratified_random_hash**: fold assignment from row id
-2. **structure_aware_hash**: fold assignment from a family-specific structure signature
-
-## Metrics reported
-
-### Overall accuracy
-
-Definition:
-
-- exact string match between prediction and gold answer after minimal normalization.
-
-Why it matters:
-
-- this is the closest available proxy to leaderboard scoring.
-
-### Per-family accuracy
-
-Reported for:
-
-- `bit_transform`
-- `text_cipher`
-- `roman_numeral`
-- `unit_conversion`
-- `gravity`
-- `equation_transform`
-
-Why it matters:
-
-- the dataset is nearly balanced across families,
-- aggregate gains can hide regressions in the hard families.
-
-### Answer-format accuracy
-
-Definition:
-
-- fraction of predictions matching family-specific formatting constraints, regardless of correctness.
-
-Examples:
-
-- bit: exactly 8 binary digits
-- Roman: uppercase Roman numeral only
-- unit conversion: exactly 2 decimal places
-- gravity: 1 or 2 decimal places
-- text: 3 to 5 lowercase words
-- equation: non-empty exact symbolic/integer string
-
-### Random-vs-structure gap
-
-Definition:
-
-- `overall_accuracy(random_split) - overall_accuracy(structure_split)`
-
-Why it matters:
-
-- a large positive gap suggests your system relies too much on easy structural overlap rather than real generalization.
-
-## How to interpret the current baseline
-
-Using the checked-in `solver_lite` baseline, expect roughly:
-
-- overall accuracy around **0.4336**,
-- answer-format accuracy of **1.0000**,
-- Roman accuracy of **1.0000**,
-- unit accuracy around **0.8350**,
-- gravity accuracy around **0.7502**,
-- near-zero text / bit / equation accuracy.
-
-Interpretation:
-
-- the current code has strong formatting discipline,
-- deterministic numeric families are partially solved,
-- the highest-value missing work is still in bit, text, and equation solving.
-
-## How to compare experiments fairly
-
-Use these rules:
-
-1. **Never use checked-in `test.csv` for model selection.**
-2. Compare the same evaluation script, same fold count, and same split definitions across runs.
-3. Compare overall accuracy **and** per-family accuracy.
-4. Track answer-format accuracy separately from exact-match accuracy.
-5. If synthetic data is involved, keep validation rows real-only.
-6. Prefer structure-aware metrics when deciding whether a change is robust.
-
-## How to avoid misleading results or overfitting
-
-Avoid these mistakes:
-
-- treating the 3-row visible `test.csv` as meaningful validation,
-- claiming improvement based only on format accuracy,
-- over-weighting easy synthetic Roman/unit/gravity data and then calling the result a general benchmark gain,
-- tuning repeatedly against the same split without recording what changed,
-- ignoring leading zeros, decimal precision, or boxed-answer formatting.
+### Assumption to label clearly
+The packaging script is a **validator and bundler**, not a trainer. If the adapter directory is wrong, packaging will fail; if the adapter is weak, packaging can still succeed.
 
 ---
 
-## 8. Result interpretation
+## 13. Troubleshooting
 
-## How to tell whether the pipeline worked correctly
-
-### Dataset/profile stage
-
-Success signs:
-
-- script runs without error,
-- family counts sum to 9,500 train rows,
-- visible test overlap is reported as 3/3,
-- family distributions look close to the documented balanced six-family mix.
-
-### Router stage
-
-Success signs:
-
-- top-level router accuracy is effectively 1.0 on checked-in data,
-- equation subfamily accuracy is effectively 1.0,
-- normalization policy is printed.
-
-### Synthetic generation stage
-
-Success signs:
-
-- output CSV is created,
-- row count matches the preset,
-- family counts match requested families,
-- only approved families are present.
-
-### SFT data stage
-
-Success signs:
-
-- train/dev JSONL files are created,
-- summary JSON is created,
-- row counts in the summary match what you intended,
-- synthetic rows are included only when requested.
-
-### Packaging stage
-
-Success signs:
-
-- submission directory is created,
-- `manifest.json` and `README_submission.md` are present,
-- `.tar.gz` archive is created,
-- config validation passes.
-
-## What a “good” result looks like right now
-
-Given current repo scope, a good result is:
-
-- reproducible baseline evaluation output,
-- generated synthetic data for the approved families,
-- SFT JSONL files ready for an external trainer,
-- a submission bundle that passes structural validation.
-
-A “good” result is **not yet** a fully trained or leaderboard-optimized model, because the repo does not contain that implementation.
-
-## Common failure patterns
-
-- trying to use `test.csv` as validation,
-- assuming there is already a training script,
-- forgetting that synthetic rows are always train-only in SFT prep,
-- misreading high format accuracy as high true reasoning accuracy,
-- packaging an adapter config that does not reference Nemotron-3-Nano-30B,
-- missing weight files when not using `--allow-missing-weight-file`.
-
-## How to validate output files and logs
-
-Useful checks:
+### `python: command not found` or wrong Python version
+Use a Python 3.10+ interpreter explicitly, for example:
 
 ```bash
-python - <<'PY'
-from pathlib import Path
-for path in [
-    Path('artifacts/synthetic/mvp_synthetic_train.csv'),
-    Path('artifacts/sft/mixed_sft_boxed.summary.json'),
-    Path('artifacts/submission/dryrun_adapter/manifest.json'),
-]:
-    print(path, path.exists())
-PY
+python3 --version
+python3 scripts/profile_dataset.py
 ```
 
-```bash
-head -n 3 artifacts/synthetic/mvp_synthetic_train.csv
-```
+### `test.csv` looks too easy
+That is expected. The checked-in `test.csv` is a smoke-test sample and overlaps with train. Do not use it as your main validation target.
+
+### `prepare_sft_data.py` fails because a synthetic file is missing
+Make sure the synthetic CSV exists first:
 
 ```bash
-head -n 2 artifacts/sft/mixed_sft_boxed.train.jsonl
+python scripts/generate_synthetic.py --preset mvp --output artifacts/synthetic/synthetic_train.csv
 ```
 
+Then rerun SFT prep using the same path.
+
+### Packaging fails with `missing required file: adapter_config.json`
+Your adapter directory is incomplete. Add `adapter_config.json` before rerunning.
+
+### Packaging fails because the base model name is wrong
+Check `adapter_config.json` and ensure `base_model_name_or_path` clearly references `Nemotron-3-Nano-30B` or pass a different `--expected-base-model` only if you truly changed the target.
+
+### Packaging fails because weights are missing
+That is expected for a config-only dry run. Re-run with:
+
 ```bash
-cat artifacts/sft/mixed_sft_boxed.summary.json
+python scripts/package_lora_submission.py ... --allow-missing-weight-file
 ```
+
+Only do this for validation smoke tests, not for the final submission bundle.
+
+### You expected end-to-end model training in this repo
+That functionality is not checked in yet. Use the docs and data-prep outputs here, then train with your external stack.
+
+### You expected direct hidden-test inference in this repo
+That functionality is also not checked in yet. The current repo stops at offline analysis, data prep, and adapter packaging.
 
 ---
 
-## 9. Submission / packaging guide
+## 14. Reproducibility checklist
 
-## What the final deliverable is supposed to be
+Use this checklist every time you run the workflow.
 
-Per repo instructions and packaging code, the final deliverable should be a:
+### Environment
+- [ ] Record Python version.
+- [ ] Run from the repo root.
+- [ ] Use a clean virtual environment when comparing experiments.
 
-- **Nemotron-3-Nano-30B-compatible LoRA adapter directory**, packaged for handoff,
-- including `adapter_config.json`,
-- and normally adapter weights in either:
-  - `adapter_model.safetensors`, or
-  - `adapter_model.bin`
+### Data
+- [ ] Do not overwrite `train.csv` or `test.csv`.
+- [ ] Inspect `train.csv` and `test.csv` directly before major changes.
+- [ ] Treat visible `test.csv` as a smoke test only.
 
-## Packaging checks performed by the script
+### Scripts
+- [ ] Capture the exact CLI commands you ran.
+- [ ] Record any non-default flags such as `--preset`, `--seed`, `--family-filter`, or `--max-synthetic-per-family`.
+- [ ] Save generated artifacts under stable paths like `artifacts/synthetic`, `artifacts/sft`, and `artifacts/submission`.
 
-`python scripts/package_lora_submission.py` validates:
+### Evaluation
+- [ ] Compare against the baseline from `python scripts/eval_baselines.py --baseline solver_lite`.
+- [ ] Review both random and structure-aware split metrics.
+- [ ] Interpret per-family scores, not just overall accuracy.
 
-1. `adapter_config.json` exists,
-2. adapter weights exist unless `--allow-missing-weight-file` is used,
-3. `adapter_config.json["base_model_name_or_path"]` contains `Nemotron-3-Nano-30B` by default,
-4. `adapter_config.json["peft_type"] == "LORA"`,
-5. `adapter_config.json` includes `target_modules`.
+### Packaging
+- [ ] Validate `adapter_config.json` before packaging.
+- [ ] Confirm the adapter is actually Nemotron-compatible.
+- [ ] Inspect the generated `manifest.json` and archive contents.
 
-## Nemotron / vLLM assumptions currently encoded
-
-The packaging script writes a manifest and submission README that assume:
-
-- the base model is Nemotron-3-Nano-30B,
-- the adapter is loaded as a LoRA,
-- inference returns one final boxed answer,
-- answer formatting must preserve benchmark schema exactly.
-
-## Pre-submission checklist
-
-Before submission, verify:
-
-- adapter directory contains the right config,
-- weight file exists,
-- base model string points at Nemotron-3-Nano-30B,
-- output formatting contract is preserved,
-- no extra text appears after `\boxed{answer}`,
-- integer/sign/leading-zero preservation has been tested,
-- decimal precision policy has been tested,
-- package script succeeds without `--allow-missing-weight-file`.
-
-## Packaging example
-
-```bash
-python scripts/package_lora_submission.py \
-  --adapter-dir final_adapter \
-  --output-dir artifacts/submission \
-  --submission-name wonderland_final
-```
-
-Expected outputs:
-
-- `artifacts/submission/wonderland_final/`
-- `artifacts/submission/wonderland_final.tar.gz`
+### Provenance
+- [ ] Record the git commit used to generate artifacts.
+- [ ] Record whether synthetic rows were included.
+- [ ] Record the exact SFT recipe if you prepared training data.
+- [ ] Record any assumptions you made beyond the checked-in scripts.
 
 ---
 
-## 10. Troubleshooting
+## 15. Recommended next step after following this guide
 
-## Likely setup issues
+After you can run the baseline workflow end to end, the highest-value next step is **not** generic fine-tuning. It is to improve the benchmark-specific logic for the unsolved families, especially:
+1. `bit_transform`
+2. `text_cipher`
+3. `equation_transform`
 
-### `python: command not found`
-
-Use a valid Python 3.10+ installation and re-run.
-
-### Missing CSV files
-
-If `train.csv` or `test.csv` are absent, none of the benchmark scripts can run.
-
-### No `artifacts/` directory yet
-
-That is normal. The scripts create needed artifact subdirectories automatically.
-
-## Likely script/runtime issues
-
-### `prepare_sft_data.py` cannot find the synthetic CSV
-
-Cause:
-
-- the synthetic file was never generated,
-- the path is wrong,
-- or you launched SFT prep before synthetic generation finished.
-
-Fix:
-
-```bash
-python scripts/generate_synthetic.py --preset mvp --output artifacts/synthetic/mvp_synthetic_train.csv
-python scripts/prepare_sft_data.py --recipe mixed_sft --synthetic-path artifacts/synthetic/mvp_synthetic_train.csv --output-dir artifacts/sft
-```
-
-### Packaging fails with missing weight file
-
-Cause:
-
-- adapter weights are not present.
-
-Fix:
-
-- for a real submission, add the weight file,
-- for a config-only validation run, use `--allow-missing-weight-file`.
-
-### Packaging fails because base model name does not match
-
-Cause:
-
-- `adapter_config.json` does not mention Nemotron-3-Nano-30B.
-
-Fix:
-
-- correct the config,
-- or override the substring check with `--expected-base-model` if you intentionally need a different string.
-
-## Likely evaluation mistakes
-
-- evaluating on `test.csv`,
-- comparing runs with different fold counts,
-- ignoring per-family breakdowns,
-- not separating exact-match from formatting accuracy,
-- claiming synthetic gains without keeping validation real-only.
-
-## Likely formatting mistakes related to final answers
-
-- emitting prose instead of only the answer,
-- forgetting `\boxed{answer}` in the final generation contract,
-- outputting lowercase Roman numerals,
-- dropping trailing zeros on 2-decimal unit answers,
-- trimming gravity precision incorrectly,
-- removing leading zeros from equation outputs,
-- inserting spaces into symbolic equation answers,
-- returning a binary string with fewer than 8 bits.
-
----
-
-## 11. Reproducibility checklist
-
-For every serious run, save these items:
-
-## Inputs
-
-- exact `train.csv` and `test.csv` versions used,
-- any synthetic CSV files used,
-- adapter directory contents used for packaging.
-
-## Commands
-
-- exact shell commands run,
-- Python version,
-- any non-default flags.
-
-## Artifacts to archive
-
-- dataset profile JSON/text output,
-- router evaluation output,
-- baseline evaluation output,
-- synthetic CSV files,
-- SFT train/dev JSONL files,
-- SFT summary JSON,
-- packaged submission directory,
-- packaged `.tar.gz` archive,
-- manifest and submission README.
-
-## Configs to pin
-
-Even though the repo lacks a `configs/` directory, you should still pin:
-
-- synthetic preset (`mvp` or `full`),
-- selected synthetic families,
-- stress fraction,
-- SFT recipe,
-- dev fraction,
-- boxed vs plain targets,
-- max synthetic per family cap,
-- expected base model string for packaging.
-
-## Evaluation settings to pin
-
-- baseline name,
-- number of folds,
-- split strategy definitions,
-- any answer normalization rules used downstream.
-
----
-
-## 12. Recommended operating sequence
-
-## Best practical order
-
-This is the best repo-aligned order for a new engineer:
-
-1. read `docs/dataset_forensics.md`, `docs/system_architecture.md`, and `docs/eval_plan.md`,
-2. inspect `train.csv` and `test.csv` directly,
-3. run `scripts/profile_dataset.py`,
-4. run `scripts/build_router.py --skip-demo`,
-5. run `scripts/eval_baselines.py --baseline solver_lite`,
-6. generate approved synthetic data only if you are preparing SFT data,
-7. run `scripts/prepare_sft_data.py` to produce JSONL files,
-8. train a LoRA externally if you decide the benchmark evidence justifies it,
-9. validate/package the trained adapter with `scripts/package_lora_submission.py`,
-10. archive all artifacts and command logs.
-
-## Quick MVP path
-
-If you just want the minimal useful repo output:
-
-```bash
-python scripts/profile_dataset.py
-python scripts/build_router.py --skip-demo
-python scripts/eval_baselines.py --baseline solver_lite
-```
-
-That gives you the current benchmark profile, router status, and honest offline baseline.
-
-## Fuller experiment path
-
-If you want the fullest currently implemented path:
-
-```bash
-python scripts/profile_dataset.py --json > artifacts/profile.json
-python scripts/build_router.py --skip-demo
-python scripts/eval_baselines.py --baseline solver_lite
-python scripts/generate_synthetic.py --preset mvp --output artifacts/synthetic/mvp_synthetic_train.csv
-python scripts/prepare_sft_data.py --recipe mixed_sft --synthetic-path artifacts/synthetic/mvp_synthetic_train.csv --output-dir artifacts/sft
-python scripts/package_lora_submission.py --adapter-dir path/to/adapter_dir --output-dir artifacts/submission --submission-name wonderland_nemotron_lora
-```
-
-This is the closest thing to "zero to result" that the current repo actually supports.
-
----
-
-## Current gaps
-
-The repo is useful, but it is not yet a complete competition system. Important missing pieces are:
-
-1. **No training script** for LoRA fine-tuning.
-2. **No inference runner** that loads a model or vLLM and generates benchmark answers.
-3. **No `src/` solver modules** even though the docs describe them.
-4. **No experiment config system** under `configs/` or `experiments/`.
-5. **No unified end-to-end command** that goes from SFT JSONL to trained adapter to benchmark predictions.
-6. **No real held-out test harness** beyond offline train-based evaluation.
-
-So, today, the practical meaning of “run from zero to result” is:
-
-- get to a trustworthy offline benchmark understanding,
-- build SFT-ready data,
-- and package a structurally valid LoRA adapter once one has been trained elsewhere.
+If you do decide to explore LoRA, the repo's current docs recommend starting with **minimal format-stabilization or mixed approved-family SFT data**, then validating on real held-out rows rather than the visible `test.csv`.

@@ -1,9 +1,8 @@
 # Work plan
 
-## Current stage: minimal useful LoRA and submission packaging
-1. Re-read the benchmark forensics, taxonomy, architecture notes, existing scripts, and direct `train.csv` / `test.csv` samples before recommending any LoRA work.
-2. Compare prompt-only, original-only SFT, mixed real+synthetic SFT, family-conditioned SFT, and answer-format-only tuning against the observed six-family benchmark structure.
-3. Write `docs/lora_plan.md` and `docs/submission_checklist.md` with a benchmark-specific minimal-LoRA recommendation, explicit stop/go gates, final answer contract, and vLLM-compatible submission QA.
-4. Implement `scripts/prepare_sft_data.py` to build reproducible SFT JSONL datasets from real rows plus optional approved synthetic rows, including family tags and boxed-answer targets.
-5. Implement `scripts/package_lora_submission.py` to validate Nemotron-compatible adapter contents, emit a packaging manifest, and bundle a submission directory for handoff.
-6. Run both scripts in verification mode, then commit the changes and prepare PR metadata.
+## Current stage: user-facing execution guide and repo entry point
+1. Re-read the benchmark forensics, taxonomy, architecture notes, existing scripts, and direct `train.csv` / `test.csv` samples before documenting the runnable workflow.
+2. Audit every checked-in script for real CLI arguments, output paths, and current limitations so the guide stays repo-specific and does not invent missing training/inference features.
+3. Rewrite `docs/run_from_zero_to_result.md` as the end-to-end runbook covering setup, profiling, routing, synthetic generation, SFT prep, evaluation, result interpretation, packaging, troubleshooting, and reproducibility.
+4. Add a short `README.md` that explains project purpose, repo structure, quick start, and points users to the full runbook.
+5. Verify the documented commands run successfully in the current environment, then commit the docs update and prepare PR metadata.
