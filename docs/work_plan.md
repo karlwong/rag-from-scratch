@@ -1,6 +1,7 @@
 # Work plan
 
-1. Profile `train.csv` and `test.csv` to identify prompt templates, answer schemas, and repeated markers.
-2. Implement `scripts/profile_dataset.py` to reproduce the statistics and representative examples.
-3. Write benchmark-specific reverse-engineering docs for dataset forensics, task taxonomy, and prioritized experiment backlog.
-4. Run the profiling script, validate outputs, then commit and package the work.
+1. Re-read `docs/dataset_forensics.md`, `docs/task_taxonomy.md`, and direct `train.csv` / `test.csv` samples to ground the routing architecture in benchmark-specific evidence.
+2. Design a two-stage benchmark router: top-level family routing plus targeted sub-routing for equation transforms and text-output grammar shape.
+3. Implement `scripts/build_router.py` as a reproducible rule-based router with confidence scoring, ambiguity flags, and a train-set routing evaluation path.
+4. Write `docs/system_architecture.md` covering routing decisions, family-specific solver strategies, normalization rules, fallback behavior, and failure risks.
+5. Run the router script, inspect the train-set evaluation output, then commit the changes and prepare a PR summary.
