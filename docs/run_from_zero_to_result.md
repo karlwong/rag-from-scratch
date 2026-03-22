@@ -2,6 +2,8 @@
 
 This guide is the **user-facing execution runbook** for the current state of this repository. It covers what you can run today, what each script produces, and where the current repo still depends on external training/inference infrastructure.
 
+If you prefer a runnable onboarding flow inside Jupyter, use `notebooks/run_full_pipeline.ipynb`. The notebook mirrors the implemented script workflow instead of inventing missing training or inference features.
+
 ## 1. What “result” means in this repo
 
 This repository currently supports a **benchmark-analysis to submission-packaging workflow**, not a full train-and-serve stack.
