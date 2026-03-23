@@ -1,8 +1,8 @@
 # Work plan
 
-## Current stage: notebook-based execution path and onboarding flow
-1. Re-read the benchmark forensics, taxonomy, architecture notes, existing scripts, and direct `train.csv` / `test.csv` samples before documenting the runnable workflow.
-2. Audit every checked-in script for real CLI arguments, output paths, and current limitations so the notebook stays repo-specific and does not invent missing training/inference features.
-3. Build `notebooks/run_full_pipeline.ipynb` as the top-to-bottom Jupyter path covering setup, repo discovery, profiling, router validation, baseline evaluation, approved synthetic generation, SFT-data preparation, optional submission packaging, evaluation interpretation, troubleshooting, and reproducibility.
-4. Update repo entry points so new engineers can discover both the notebook path and the CLI-first runbook quickly.
-5. Verify the documented commands and notebook-facing paths run successfully in the current environment, then commit the update and prepare PR metadata.
+## Current stage: Kaggle-self-contained notebook execution path
+1. Re-read the benchmark forensics, taxonomy, architecture notes, existing scripts, and direct `train.csv` / `test.csv` samples before changing the notebook workflow.
+2. Audit every checked-in script for real CLI arguments, output paths, and current limitations so the notebook stays repo-specific and does not invent missing training or inference features.
+3. Make `notebooks/run_full_pipeline.ipynb` runnable in Kaggle without extra uploaded Python files by embedding the checked-in script sources and materializing them into `/kaggle/working/` at runtime.
+4. Keep the local-repo execution path working so the same notebook still runs unchanged for repository users outside Kaggle.
+5. Verify the notebook-facing workflow in both local and simulated Kaggle-style environments, then commit the update and prepare PR metadata.

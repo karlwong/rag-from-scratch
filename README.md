@@ -1,6 +1,6 @@
 # rag-from-scratch
 
-A benchmark-analysis and LoRA-packaging workspace for the Wonderland-style reasoning competition described in `AGENTS.md`. The repo is currently built to help you inspect the dataset, route prompts into puzzle families, run offline baselines, generate approved synthetic data, prepare SFT datasets, package an existing Nemotron-compatible LoRA adapter for submission, and now run that checked-in workflow end to end from Jupyter via `notebooks/run_full_pipeline.ipynb`.
+A benchmark-analysis and LoRA-packaging workspace for the Wonderland-style reasoning competition described in `AGENTS.md`. The repo is currently built to help you inspect the dataset, route prompts into puzzle families, run offline baselines, generate approved synthetic data, prepare SFT datasets, package an existing Nemotron-compatible LoRA adapter for submission, and now run that checked-in workflow end to end from Jupyter via `notebooks/run_full_pipeline.ipynb`, including a Kaggle-friendly self-contained mode that writes the required script files into `/kaggle/working/` at runtime.
 
 ## Repo structure
 
@@ -30,6 +30,8 @@ source .venv/bin/activate
 python -m pip install --upgrade pip notebook
 jupyter notebook notebooks/run_full_pipeline.ipynb
 ```
+
+Kaggle notebook path: attach the competition dataset and open `notebooks/run_full_pipeline.ipynb`; the notebook will detect Kaggle automatically, copy `train.csv` / `test.csv` into `/kaggle/working/rag-from-scratch/`, and materialize the checked-in workflow scripts there so no separate `.py` upload is needed.
 
 What to expect:
 - `profile_dataset.py` summarizes the checked-in dataset and confirms the visible `test.csv` is only a tiny smoke-test sample.
