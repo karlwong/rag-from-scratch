@@ -1,8 +1,9 @@
 # Work plan
 
-## Current stage: notebook baseline-matrix offline evaluation update
-1. Re-read the benchmark forensics, taxonomy, architecture notes, existing scripts, and direct `train.csv` / `test.csv` samples before changing the notebook workflow.
-2. Audit the notebook's offline evaluation, artifact checklist, and reproducibility sections so the update stays aligned with the checked-in CLI behavior in `scripts/eval_baselines.py`.
-3. Replace the single-baseline notebook evaluation with a fixed-fold baseline matrix that runs at least `last_demo` and `solver_lite`, writes separate reports, and parses them into a structured comparison object.
-4. Render a compact side-by-side comparison table that preserves split names, overall accuracy, answer-format accuracy, and per-family accuracy without changing the split strategy or fold count between runs.
-5. Validate the notebook JSON after editing, then review the diff, commit the changes, and prepare PR metadata.
+## Current stage: notebook experiment-ladder expansion
+1. Re-read the benchmark forensics, LoRA/eval docs, existing scripts, and direct `train.csv` / `test.csv` samples before changing the notebook workflow.
+2. Audit notebook sections 5.4, 5.5, the results-inspection cell, reproducibility notes, and the Definition of Success so the update stays aligned with the checked-in CLI behavior in `scripts/generate_synthetic.py` and `scripts/prepare_sft_data.py`.
+3. Replace the single MVP synthetic path with a loop that materializes the full documented synthetic ladder (`none`, `mvp`, `full`) and records explicit artifact metadata.
+4. Replace the single mixed-SFT run with the documented recipe matrix across `original_sft`, `mixed_sft`, `family_conditioned`, and `format_stabilization`, including only the boxed/plain variants that the docs explicitly call for.
+5. Render a notebook summary table that records synthetic source, recipe, box style, synthetic cap, output path, and train/dev row counts for every generated dataset.
+6. Update the success criteria and saved-artifact checklist to require the full experiment ladder, then validate the notebook JSON, review the diff, commit the changes, and prepare PR metadata.
